@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Gastos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.tailwind) {
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] },
+            colors: {
+              fondo: '#0F172A',
+              superficie: '#1E293B',
+              acento: '#38BDF8',
+              tenue: '#64748B',
+              linea: '#334155',
+              texto: '#F1F5F9'
+            }
+          }
+        }
+      };
+    }
+  </script>
+  <style>
+    :root {
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; }
+    html, body { background: #0F172A; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: #F1F5F9;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+      overscroll-behavior-y: none;
+    }
+    button, input { font: inherit; color: inherit; margin: 0; }
+    button { cursor: pointer; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+    .oculto { display: none !important; }
+    .contenedor { max-width: 480px; margin: 0 auto; padding: 0 16px; }
+
+    /* ---------- Tipografía ---------- */
+    .etiqueta {
+      font-size: 11px; line-height: 16px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #64748B;
+    }
+    .cifra {
+      font-size: 48px; line-height: 56px; font-weight: 500;
+      letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+    }
+    .num { font-variant-numeric: tabular-nums; }
+    .fuerte { font-weight: 500; }
+    .sub, .vacio, .centavos { color: #64748B; }
+    .negativo, .negativo .centavos { color: #F87171; }
+    .trunc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ---------- Cabecera ---------- */
+    .cabecera { position: sticky; top: 0; z-index: 25; background: #0F172A; padding-top: var(--safe-t); }
+    .cabecera-in {
+      max-width: 480px; margin: 0 auto; height: 56px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 0 8px 0 16px;
+    }
+    .titulo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .2s; }
+    .titulo.es-ok { color: #F1F5F9; }
+    .titulo.es-error { color: #F87171; }
+    .btn-sync {
+      width: 48px; height: 48px; flex-shrink: 0; border: 0; background: transparent;
+      display: flex; align-items: center; justify-content: center; border-radius: 9999px; color: #CBD5E1;
+    }
+    .btn-sync-ico {
+      width: 32px; height: 32px; border-radius: 9999px; background: #1E293B;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-sync:active .btn-sync-ico { transform: scale(0.92); }
+    .btn-sync.girando svg { animation: girar .8s linear infinite; }
+
+    /* ---------- Vistas ---------- */
+    .vista-cargar { padding-bottom: calc(168px + var(--safe-b)); }
+    .vista-resumen { padding-bottom: calc(96px + var(--safe-b)); }
+
+    /* ---------- Monto ---------- */
+    .fila-etiquetas { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+    .monto-fila { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; }
+    .simbolo { color: #64748B; flex-shrink: 0; }
+    .monto-input {
+      flex: 1; min-width: 0; width: 100%; padding: 0;
+      background: transparent; border: 0; outline: none;
+      color: #F1F5F9; caret-color: #F1F5F9;
+    }
+    .monto-input::placeholder { color: #334155; opacity: 1; }
+
+    /* ---------- Detalle ---------- */
+    .campo {
+      display: block; width: 100%; min-height: 48px; margin-top: 8px;
+      padding: 12px 24px; border: 0; border-radius: 9999px;
+      background: #1E293B; color: #F1F5F9; outline: none;
+      font-size: 16px; line-height: 24px;
+      box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .15s;
+    }
+    .campo::placeholder { color: #64748B; opacity: 1; }
+    .campo:focus { box-shadow: inset 0 0 0 1px #475569; }
+
+    /* ---------- Chips (3 por fila) ---------- */
+    .chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+    .chip {
+      min-height: 48px; padding: 14px 16px; border: 0; border-radius: 9999px;
+      background: #1E293B; color: #CBD5E1;
+      font-size: 16px; line-height: 20px; font-weight: 400; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: background-color .15s, color .15s, transform .1s;
+    }
+    .chip[aria-pressed="true"] { background: #F1F5F9; color: #0F172A; font-weight: 500; }
+    .chip:active { transform: scale(0.97); }
+    .chip.esqueleto { color: transparent; pointer-events: none; animation: pulso 1.2s ease-in-out infinite; }
+    .col-todas { grid-column: 1 / -1; }
+
+    /* ---------- Botón primario ---------- */
+    .pill { border: 0; border-radius: 9999px; padding: 14px 32px; min-height: 48px; font-size: 16px; line-height: 20px; }
+    .btn-primario {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: #38BDF8; color: #0F172A; font-weight: 500;
+      transition: transform .1s ease, opacity .2s ease;
+    }
+    .btn-primario:active { transform: scale(0.98); }
+    .btn-primario[data-estado="guardando"] { opacity: 0.72; }
+    .btn-ico { display: inline-flex; }
+    .btn-ico:empty { display: none; }
+    .spinner {
+      width: 16px; height: 16px; border-radius: 9999px;
+      border: 2px solid rgba(15, 23, 42, 0.25); border-top-color: #0F172A;
+      animation: girar .7s linear infinite;
+    }
+    .spinner.claro { border-color: rgba(241, 245, 249, 0.2); border-top-color: #F1F5F9; }
+    .barra-guardar {
+      position: fixed; left: 0; right: 0; z-index: 20;
+      bottom: calc(64px + var(--safe-b));
+      padding: 16px 0;
+      background: linear-gradient(to top, #0F172A 64%, rgba(15, 23, 42, 0));
+    }
+
+    /* ---------- Barra inferior ---------- */
+    .tabbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      height: calc(64px + var(--safe-b)); padding-bottom: var(--safe-b);
+      background: #1E293B;
+    }
+    .tabbar-in { max-width: 480px; margin: 0 auto; height: 64px; display: flex; }
+    .tab {
+      flex: 1; min-height: 48px; border: 0; background: transparent;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      color: #64748B; font-size: 11px; line-height: 16px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase; transition: color .15s;
+    }
+    .tab[aria-selected="true"] { color: #F1F5F9; }
+
+    /* Teclado abierto (Android): se oculta la barra y Guardar queda sobre el teclado */
+    body.teclado .tabbar { display: none; }
+    body.teclado .barra-guardar { bottom: 0; }
+
+    /* ---------- Cards ---------- */
+    .card { background: #1E293B; border-radius: 32px; padding: 24px; }
+    .card-lista { padding-bottom: 8px; }
+
+    /* Barras */
+    .barra { height: 8px; margin-top: 8px; border-radius: 9999px; background: #0F172A; overflow: hidden; }
+    .barra.presu { background: #1E293B; margin-top: 16px; }
+    .barra-relleno { height: 100%; width: 0; border-radius: 9999px; transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+
+    /* Top categorías */
+    .top-fila + .top-fila { margin-top: 16px; }
+    .top-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+    .top-nombre { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+
+    /* Evolución */
+    .eje { display: flex; justify-content: space-between; }
+    .ley-evo-wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+    .ley-evo { display: flex; align-items: center; gap: 8px; }
+    .trazo { width: 16px; height: 0; border-top: 2px solid #F1F5F9; }
+    .trazo.punteada { border-top: 2px dashed #64748B; }
+    .trazo.limite { border-top: 2px solid #475569; }
+
+    /* Dona */
+    .dona-wrap { display: flex; align-items: center; gap: 24px; }
+    .dona { position: relative; width: 128px; height: 128px; flex-shrink: 0; }
+    .dona-centro {
+      position: absolute; inset: 0; padding: 0 24px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    }
+    .dona-pct { font-weight: 500; }
+    .dona-nombre { max-width: 100%; }
+    .leyenda { flex: 1; min-width: 0; }
+    .ley-fila { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+    .ley-fila + .ley-fila { margin-top: 8px; }
+    .ley-nombre { flex: 1; color: #CBD5E1; }
+    .punto { width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
+
+    /* Movimientos */
+    .mov { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 16px 0; }
+    .mov + .mov { border-top: 1px solid #334155; }
+    .mov-izq { min-width: 0; }
+    .mov-monto { flex-shrink: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    /* Cuenta */
+    .cuenta { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 32px; text-align: center; }
+    .btn-texto {
+      min-height: 48px; padding: 14px 32px; border: 0; border-radius: 9999px;
+      background: transparent; color: #64748B;
+    }
+
+    /* ---------- Acceso (inicio de sesión) ---------- */
+    .acceso {
+      position: fixed; inset: 0; z-index: 50; background: #0F172A;
+      display: flex; align-items: center;
+      padding: calc(32px + var(--safe-t)) 0 calc(32px + var(--safe-b));
+    }
+    .acceso-in { width: 100%; }
+    .acceso-texto { margin-top: 16px; color: #CBD5E1; }
+    .acceso-cargando { display: flex; align-items: center; gap: 16px; margin-top: 32px; color: #64748B; }
+
+    /* ---------- Animaciones ---------- */
+    @keyframes girar { to { transform: rotate(360deg); } }
+    @keyframes pulso { 0%, 100% { opacity: .45; } 50% { opacity: .9; } }
+    @keyframes sacudir {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .sacudir { animation: sacudir .32s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cabecera: título de la vista (y avisos) + mini sync -->
+  <header class="cabecera">
+    <div class="cabecera-in">
+      <span id="titulo" class="etiqueta titulo" role="status" aria-live="polite">Nuevo gasto</span>
+      <button id="btnSync" type="button" class="btn-sync" aria-label="Sincronizar categorías y datos">
+        <span class="btn-sync-ico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/>
+            <path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= CARGAR ================= -->
+    <section id="vistaCargar" class="vista-cargar contenedor" aria-label="Cargar gasto">
+      <div id="zonaMonto" class="pt-6">
+        <div class="fila-etiquetas">
+          <label for="monto" class="etiqueta">Monto</label>
+          <span id="cDisponible" class="etiqueta num"></span>
+        </div>
+        <div id="montoFila" class="monto-fila">
+          <span id="simbolo" class="cifra simbolo" aria-hidden="true">$</span>
+          <input id="monto" class="cifra monto-input" type="text" inputmode="decimal" enterkeyhint="next"
+                 autocomplete="off" autocorrect="off" spellcheck="false" placeholder="0" autofocus>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <label for="detalle" class="etiqueta">Detalle</label>
+        <input id="detalle" class="campo" type="text" maxlength="80" enterkeyhint="done"
+               autocomplete="off" placeholder="Opcional">
+      </div>
+
+      <div class="mt-8">
+        <div class="etiqueta">Categoría</div>
+        <div id="chips" class="chips" role="group" aria-label="Categoría"></div>
+      </div>
+    </section>
+
+    <!-- ================= RESUMEN ================= -->
+    <section id="vistaResumen" class="vista-resumen contenedor oculto" aria-label="Resumen">
+      <div class="pt-6">
+        <div id="rMes" class="etiqueta">Disponible</div>
+        <div id="rTotal" class="cifra mt-2">&mdash;</div>
+        <div class="barra presu" role="presentation"><div id="rPresuBarra" class="barra-relleno"></div></div>
+        <div id="rSub" class="sub mt-2">Cargando&hellip;</div>
+        <div id="rSobrante" class="sub oculto"></div>
+      </div>
+
+      <div class="card mt-8">
+        <div class="etiqueta">Top categorías</div>
+        <div id="rTop" class="mt-6"></div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="flex items-baseline justify-between gap-4">
+          <div class="etiqueta">Evolución del mes</div>
+          <div id="rRitmo" class="etiqueta"></div>
+        </div>
+        <div id="rEvo" class="mt-6"></div>
+        <div id="rEje" class="eje mt-2"></div>
+        <div id="rLeyEvo" class="ley-evo-wrap mt-4"></div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="etiqueta">Por categoría</div>
+        <div class="dona-wrap mt-6">
+          <div class="dona">
+            <div id="rDona"></div>
+            <div id="rDonaCentro" class="dona-centro"></div>
+          </div>
+          <div id="rLeyenda" class="leyenda"></div>
+        </div>
+      </div>
+
+      <div class="card card-lista mt-4">
+        <div class="etiqueta">Últimos movimientos</div>
+        <div id="rUltimos" class="mt-2"></div>
+      </div>
+
+      <div class="cuenta">
+        <span id="rUsuario" class="etiqueta"></span>
+        <button id="btnSalir" type="button" class="btn-texto">Cerrar sesión</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Botón Guardar: único, primario, fijo abajo -->
+  <div id="barraGuardar" class="barra-guardar">
+    <div class="contenedor">
+      <button id="btnGuardar" type="button" class="pill btn-primario" data-estado="listo">
+        <span id="btnIco" class="btn-ico"></span><span id="btnTxt">Guardar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra inferior fija -->
+  <nav class="tabbar" role="tablist" aria-label="Secciones">
+    <div class="tabbar-in">
+      <button id="tabCargar" type="button" class="tab" role="tab" aria-selected="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Cargar</span>
+      </button>
+      <button id="tabResumen" type="button" class="tab" role="tab" aria-selected="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 20v-6M12 20V4M19 20v-10"/>
+        </svg>
+        <span>Resumen</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Inicio de sesión con Microsoft 365 -->
+  <div id="acceso" class="acceso oculto" role="dialog" aria-modal="true" aria-labelledby="accesoTitulo">
+    <div class="acceso-in contenedor">
+      <div id="accesoTitulo" class="etiqueta">Gastos · Microsoft 365</div>
+      <p id="accesoTexto" class="acceso-texto"></p>
+      <div id="accesoCargando" class="acceso-cargando oculto"><span class="spinner claro"></span><span>Un momento&hellip;</span></div>
+      <button id="btnEntrar" type="button" class="pill btn-primario mt-8">Iniciar sesión</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ===== LÓGICA PURA (inicio) ===== */
+
+  /* ==================================================================
+   * CONFIGURACIÓN: pega aquí los dos IDs de tu registro en Microsoft Entra
+   * ================================================================== */
+  var CONFIG = {
+    CLIENT_ID: 'PEGA_AQUI_EL_ID_DE_APLICACION',
+    TENANT_ID: 'PEGA_AQUI_EL_ID_DE_DIRECTORIO',
+    ARCHIVO: 'Gastos.xlsx',          // Ruta dentro de tu OneDrive ("Mis archivos")
+    TABLA_GASTOS: 'TablaGastos',
+    TABLA_CATEGORIAS: 'TablaCategorias',
+    TABLA_AJUSTES: 'TablaAjustes',
+    PRESUPUESTO: 2000,               // Solo se usa si falta en la hoja Config
+    TOP: 4,
+    ULTIMOS: 8,
+    LOCALE: 'es-MX',
+    MONEDA: 'MXN'
+  };
+
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+               'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  var DIA_MS = 86400000;
+  var EXCEL_EPOCA = 25569; // días entre 30/12/1899 y 01/01/1970
+
+  function normal(s) {
+    return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+
+  function texto(v) {
+    return String(v == null ? '' : v).replace(/^'/, '').trim();
+  }
+
+  /** Acepta "120", "120.5", "120,50", "1,234.50", "1.234,50". */
+  function parsearMonto(entrada) {
+    var s = String(entrada == null ? '' : entrada).replace(/[^0-9.,]/g, '');
+    if (!s) return NaN;
+    var coma = s.lastIndexOf(',');
+    var punto = s.lastIndexOf('.');
+    if (coma > -1 && punto > -1) {
+      s = coma > punto ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    } else if (coma > -1) {
+      var pc = s.split(',');
+      s = (pc.length === 2 && pc[1].length > 0 && pc[1].length <= 2) ? pc[0] + '.' + pc[1] : pc.join('');
+    } else if (punto > -1) {
+      var pp = s.split('.');
+      if (pp.length > 2) s = pp.join('');
+    }
+    var n = parseFloat(s);
+    return isFinite(n) ? n : NaN;
+  }
+
+  function aNumero(v) {
+    if (typeof v === 'number') return v;
+    var s = String(v == null ? '' : v).trim();
+    var signo = /^-/.test(s) ? -1 : 1;
+    return signo * parsearMonto(s);
+  }
+
+  /** Fecha de Excel (número de serie o texto) a "hora de reloj" en ms (componentes UTC = fecha local). */
+  function aFecha(v) {
+    if (typeof v === 'number') return v > 0 ? Math.round((v - EXCEL_EPOCA) * DIA_MS) : null;
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return null;
+    var a, m, d, h = 0, mi = 0;
+    var r = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/);
+    if (r) {
+      a = +r[1]; m = +r[2]; d = +r[3]; h = +(r[4] || 0); mi = +(r[5] || 0);
+    } else {
+      r = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/);
+      if (!r) return null;
+      d = +r[1]; m = +r[2]; a = +r[3]; h = +(r[4] || 0); mi = +(r[5] || 0);
+      if (a < 100) a += 2000;
+    }
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+    return Date.UTC(a, m - 1, d, h, mi);
+  }
+
+  /** Fecha y hora actuales del celular como número de serie de Excel. */
+  function serialExcel(fecha) {
+    var ms = Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(),
+                      fecha.getHours(), fecha.getMinutes(), fecha.getSeconds());
+    return ms / DIA_MS + EXCEL_EPOCA;
+  }
+
+  function columnasDe(encabezado) {
+    var c = { fecha: -1, detalle: -1, monto: -1, categoria: -1, total: encabezado ? encabezado.length : 4 };
+    for (var i = 0; encabezado && i < encabezado.length; i++) {
+      var h = normal(encabezado[i]);
+      if (h === 'fecha') c.fecha = i;
+      else if (h === 'detalle') c.detalle = i;
+      else if (h === 'monto') c.monto = i;
+      else if (h === 'categoria') c.categoria = i;
+    }
+    if (c.fecha < 0 || c.detalle < 0 || c.monto < 0 || c.categoria < 0) {
+      return { fecha: 0, detalle: 1, monto: 2, categoria: 3, total: Math.max(c.total, 4) };
+    }
+    return c;
+  }
+
+  /** Valores de TablaGastos (con encabezado) a filas limpias. */
+  function filasGastos(valores) {
+    var col = columnasDe(valores && valores[0]);
+    var filas = [];
+    for (var i = 1; valores && i < valores.length; i++) {
+      var v = valores[i];
+      var t = aFecha(v[col.fecha]);
+      var monto = aNumero(v[col.monto]);
+      if (t === null || !isFinite(monto) || monto === 0) continue;
+      filas.push({
+        i: i,
+        t: t,
+        detalle: texto(v[col.detalle]),
+        monto: monto,
+        categoria: texto(v[col.categoria]) || 'Sin categoría'
+      });
+    }
+    return { filas: filas, columnas: col };
+  }
+
+  function listaCategorias(valores) {
+    var vistas = {};
+    var lista = [];
+    for (var i = 1; valores && i < valores.length; i++) {
+      var c = texto(valores[i][0]);
+      var k = c.toLowerCase();
+      if (c && !vistas[k]) { vistas[k] = true; lista.push(c); }
+    }
+    return lista;
+  }
+
+  /** TablaAjustes: "Presupuesto mensual" y "Mes de inicio" (índice de mes = año*12+mes). */
+  function leerAjustes(valores) {
+    var a = { presupuesto: CONFIG.PRESUPUESTO, inicio: null };
+    for (var i = 1; valores && i < valores.length; i++) {
+      var k = normal(valores[i][0]);
+      var v = valores[i][1];
+      if (k.indexOf('presupuesto') > -1) {
+        var n = aNumero(v);
+        if (isFinite(n) && n >= 0) a.presupuesto = n;
+      } else if (k.indexOf('inicio') > -1) {
+        var t = aFecha(v);
+        if (t !== null) {
+          var d = new Date(t);
+          a.inicio = d.getUTCFullYear() * 12 + d.getUTCMonth();
+        }
+      }
+    }
+    return a;
+  }
+
+  /** Texto que Excel podría convertir en fórmula, número o fecha se guarda como texto. */
+  function comoTexto(s) {
+    s = String(s == null ? '' : s);
+    if (!s) return '';
+    return (/^[=+\-@]/.test(s) || /^[\d\s.,:\/-]+$/.test(s)) ? "'" + s : s;
+  }
+
+  function filaParaExcel(col, serial, detalle, monto, categoria) {
+    var fila = [];
+    for (var i = 0; i < col.total; i++) fila.push(null);
+    fila[col.fecha] = serial;
+    fila[col.detalle] = comoTexto(detalle);
+    fila[col.monto] = monto;
+    fila[col.categoria] = comoTexto(categoria);
+    return fila;
+  }
+
+  function r2(n) { return Math.round(n * 100) / 100; }
+  function ceros(n) { var a = []; for (var i = 0; i < n; i++) a.push(0); return a; }
+  function dos(n) { return n < 10 ? '0' + n : String(n); }
+  function isoDeLocal(d) { return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()); }
+  function isoDeReloj(t) { var d = new Date(t); return d.getUTCFullYear() + '-' + dos(d.getUTCMonth() + 1) + '-' + dos(d.getUTCDate()); }
+
+  function acumular(diario, hasta) {
+    var out = [];
+    var s = 0;
+    for (var i = 0; i < hasta; i++) { s += diario[i]; out.push(r2(s)); }
+    return out;
+  }
+
+  /** Resumen del mes + presupuesto acumulable. */
+  function calcularResumen(filas, ajustes, ahora) {
+    var y = ahora.getFullYear();
+    var m = ahora.getMonth();
+    var hoy = ahora.getDate();
+    var actual = y * 12 + m;
+    var anterior = actual - 1;
+    var mesAnt = ((anterior % 12) + 12) % 12;
+    var anioAnt = Math.floor(anterior / 12);
+
+    var diasMes = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    var diasAnt = new Date(Date.UTC(anioAnt, mesAnt + 1, 0)).getUTCDate();
+    var diarioAct = ceros(diasMes);
+    var diarioAnt = ceros(diasAnt);
+
+    var mensual = ajustes && isFinite(ajustes.presupuesto) ? ajustes.presupuesto : CONFIG.PRESUPUESTO;
+    var inicio = ajustes && ajustes.inicio !== null && ajustes.inicio !== undefined ? ajustes.inicio : actual;
+    if (inicio > actual) inicio = actual;
+
+    var porCategoria = {};
+    var total = 0, totalAnt = 0, cantidad = 0, previos = 0;
+
+    for (var i = 0; i < filas.length; i++) {
+      var f = filas[i];
+      var d = new Date(f.t);
+      var idx = d.getUTCFullYear() * 12 + d.getUTCMonth();
+      var dia = d.getUTCDate() - 1;
+      if (idx === actual) {
+        diarioAct[dia] += f.monto;
+        porCategoria[f.categoria] = (porCategoria[f.categoria] || 0) + f.monto;
+        total += f.monto;
+        cantidad++;
+      } else if (idx === anterior) {
+        diarioAnt[dia] += f.monto;
+        totalAnt += f.monto;
+      }
+      if (idx >= inicio && idx < actual) previos += f.monto;
+    }
+
+    var cats = Object.keys(porCategoria)
+      .map(function (k) { return { nombre: k, monto: porCategoria[k] }; })
+      .sort(function (a, b) { return b.monto - a.monto; });
+
+    function conPct(c) {
+      return { nombre: c.nombre, monto: r2(c.monto), pct: total > 0 ? Math.round(c.monto / total * 1000) / 10 : 0 };
+    }
+
+    var top = cats.slice(0, CONFIG.TOP).map(conPct);
+    var dona;
+    if (cats.length <= CONFIG.TOP + 1) {
+      dona = cats.map(conPct);
+    } else {
+      var resto = 0;
+      for (var k = CONFIG.TOP; k < cats.length; k++) resto += cats[k].monto;
+      dona = cats.slice(0, CONFIG.TOP).concat([{ nombre: 'Otras', monto: resto }]).map(conPct);
+    }
+
+    var hasta = hoy;
+    for (var j = diasMes - 1; j >= hoy; j--) {
+      if (diarioAct[j] !== 0) { hasta = j + 1; break; }
+    }
+    var acumAct = acumular(diarioAct, hasta);
+    var acumAnt = acumular(diarioAnt, diasAnt);
+
+    var meses = actual - inicio + 1;
+    var sobrante = mensual * (meses - 1) - previos;
+    var limite = mensual + sobrante;
+
+    var ordenados = filas.slice().sort(function (a, b) { return (b.t - a.t) || (b.i - a.i); });
+    var ultimos = ordenados.slice(0, CONFIG.ULTIMOS).map(function (f) {
+      return { detalle: f.detalle, categoria: f.categoria, monto: r2(f.monto), fecha: isoDeReloj(f.t) };
+    });
+
+    return {
+      mes: MESES[m],
+      mesAnterior: MESES[mesAnt],
+      anio: y,
+      total: r2(total),
+      totalAnterior: r2(totalAnt),
+      cantidad: cantidad,
+      top: top,
+      dona: dona,
+      evolucion: {
+        actual: acumAct,
+        anterior: acumAnt,
+        diasMes: diasMes,
+        hoy: hoy,
+        alDia: acumAct[Math.min(hoy, acumAct.length) - 1] || 0,
+        anteriorAlDia: acumAnt[Math.min(hoy, diasAnt) - 1] || 0
+      },
+      presupuesto: {
+        mensual: r2(mensual),
+        meses: meses,
+        sobrante: r2(sobrante),
+        limite: r2(limite),
+        disponible: r2(limite - total)
+      },
+      ultimos: ultimos,
+      hoy: isoDeLocal(ahora),
+      ayer: isoDeLocal(new Date(y, m, hoy - 1))
+    };
+  }
+
+  /* ===== LÓGICA PURA (fin) ===== */
+
+
+  /* ================= Ajustes de interfaz ================= */
+  // [0] = acento: solo para la categoría principal (barra y porción de dona)
+  var COLORES = ['#38BDF8', '#CBD5E1', '#94A3B8', '#64748B', '#475569'];
+  var SCOPES = 'openid profile offline_access https://graph.microsoft.com/Files.ReadWrite';
+  var GRAPH = 'https://graph.microsoft.com/v1.0';
+  var SYNC_AUTO_MS = 60000;
+  var K = {
+    tokens: 'gastos.tokens',
+    pkce: 'gastos.pkce',
+    usuario: 'gastos.usuario',
+    item: 'gastos.item',
+    cache: 'gastos.cache',
+    categoria: 'gastos.categoria',
+    pendiente: 'gastos.pendiente',
+    rebote: 'gastos.rebote'
+  };
+
+  var fmt0 = new Intl.NumberFormat(CONFIG.LOCALE, { style: 'currency', currency: CONFIG.MONEDA, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  var fmt2 = new Intl.NumberFormat(CONFIG.LOCALE, { style: 'currency', currency: CONFIG.MONEDA, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  var ICONO_OK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  var estado = {
+    categorias: [],
+    categoria: null,
+    filas: [],
+    columnas: columnasDe(null),
+    ajustes: { presupuesto: CONFIG.PRESUPUESTO, inicio: null },
+    resumen: null,
+    vista: 'cargar',
+    guardando: false,
+    cargando: false,
+    ultimaSync: 0,
+    dentro: false
+  };
+  var tAviso = null;
+  var tBoton = null;
+  var alturaBase = window.innerHeight;
+
+  /* ================= Utilidades ================= */
+  function qs(id) { return document.getElementById(id); }
+
+  function el(tag, clase, contenido) {
+    var n = document.createElement(tag);
+    if (clase) n.className = clase;
+    if (contenido !== undefined && contenido !== null) n.textContent = contenido;
+    return n;
+  }
+
+  function sinCentavos(n) { return Math.round(Math.abs(n) * 100) % 100 === 0; }
+  function dinero(n) { n = Number(n) || 0; return (sinCentavos(n) ? fmt0 : fmt2).format(n); }
+
+  function simboloMoneda() {
+    try {
+      var partes = fmt0.formatToParts(0);
+      for (var i = 0; i < partes.length; i++) if (partes[i].type === 'currency') return partes[i].value;
+    } catch (e) {}
+    return '$';
+  }
+
+  function pctTexto(p) { return p > 0 && p < 1 ? '<1%' : Math.round(p) + '%'; }
+  function corto(mes) { return String(mes || '').slice(0, 3); }
+  function capital(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function pausa(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
+
+  function mensaje(err) {
+    if (err && err.name === 'TypeError') return 'Sin conexión a internet';
+    var m = err && err.message ? err.message : String(err || 'Error');
+    m = m.replace(/^(Exception|Error):\s*/i, '').split(/\r?\n/)[0];
+    return m.length > 140 ? m.slice(0, 137) + '...' : m;
+  }
+
+  function leerLS(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function guardarLS(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+  function borrarLS(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+  function leerJSON(k) { try { return JSON.parse(leerLS(k) || 'null'); } catch (e) { return null; } }
+  function guardarJSON(k, v) { try { guardarLS(k, JSON.stringify(v)); } catch (e) {} }
+
+  function vibrar(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+
+  function sacudir(nodo) {
+    nodo.classList.remove('sacudir');
+    void nodo.offsetWidth;
+    nodo.classList.add('sacudir');
+  }
+
+  function enfocarMonto() {
+    var m = qs('monto');
+    try { m.focus({ preventScroll: true }); } catch (e) { m.focus(); }
+  }
+
+  function camposVacios() { return !qs('monto').value && !qs('detalle').value; }
+
+  /* ================= Inicio de sesión (OAuth 2.0 + PKCE, sin librerías) ================= */
+  var refrescando = null;
+
+  function configurado() {
+    return /^[0-9a-f-]{36}$/i.test(CONFIG.CLIENT_ID) && CONFIG.TENANT_ID && CONFIG.TENANT_ID.indexOf('PEGA_') !== 0;
+  }
+
+  function urlAuth(accion) {
+    return 'https://login.microsoftonline.com/' + encodeURIComponent(CONFIG.TENANT_ID) + '/oauth2/v2.0/' + accion;
+  }
+
+  function urlRetorno() { return location.origin + location.pathname.replace(/index\.html$/, ''); }
+
+  function base64url(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function aleatorio(n) {
+    var a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return base64url(a);
+  }
+
+  function sha256(cadena) {
+    if (!window.crypto || !crypto.subtle) return Promise.reject(new Error('Abre la app desde una dirección https'));
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(cadena))
+      .then(function (h) { return base64url(new Uint8Array(h)); });
+  }
+
+  function usuarioDe(jwt) {
+    try {
+      var p = String(jwt).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (p.length % 4) p += '=';
+      var o = JSON.parse(atob(p));
+      return o.preferred_username || o.email || o.upn || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function tokens() { return leerJSON(K.tokens); }
+
+  function errorSesion() {
+    var e = new Error('Tu sesión de Microsoft expiró');
+    e.sesion = true;
+    return e;
+  }
+
+  function caducarAcceso() {
+    var t = tokens();
+    if (t) { t.expira = 0; guardarJSON(K.tokens, t); }
+  }
+
+  function iniciarSesion(pista) {
+    var verificador = aleatorio(48);
+    var estadoOAuth = aleatorio(16);
+    return sha256(verificador).then(function (reto) {
+      guardarJSON(K.pkce, { v: verificador, s: estadoOAuth });
+      var p = new URLSearchParams({
+        client_id: CONFIG.CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: urlRetorno(),
+        response_mode: 'query',
+        scope: SCOPES,
+        state: estadoOAuth,
+        code_challenge: reto,
+        code_challenge_method: 'S256'
+      });
+      if (pista) p.set('login_hint', pista);
+      location.assign(urlAuth('authorize') + '?' + p.toString());
+    });
+  }
+
+  function pedirToken(campos) {
+    campos.client_id = CONFIG.CLIENT_ID;
+    campos.scope = SCOPES;
+    return fetch(urlAuth('token'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(campos).toString()
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || 'No se pudo obtener el acceso');
+        var previo = tokens() || {};
+        var t = {
+          access: j.access_token,
+          refresh: j.refresh_token || previo.refresh || null,
+          expira: Date.now() + Math.max((Number(j.expires_in) || 3600) - 120, 60) * 1000
+        };
+        var u = usuarioDe(j.id_token);
+        if (u) guardarLS(K.usuario, u);
+        guardarJSON(K.tokens, t);
+        return t;
+      });
+    });
+  }
+
+  function obtenerToken() {
+    var t = tokens();
+    if (!t) return Promise.reject(errorSesion());
+    if (t.access && Date.now() < t.expira) return Promise.resolve(t.access);
+    if (!t.refresh) return Promise.reject(errorSesion());
+    if (!refrescando) {
+      refrescando = pedirToken({ grant_type: 'refresh_token', refresh_token: t.refresh })
+        .then(function (n) { refrescando = null; return n.access; })
+        .catch(function (e) {
+          refrescando = null;
+          if (e && e.name === 'TypeError') throw e; // sin red: se conserva la sesión
+          borrarLS(K.tokens);
+          throw errorSesion();
+        });
+    }
+    return refrescando;
+  }
+
+  /** Procesa el regreso de Microsoft (?code=...). Devuelve true si hubo inicio de sesión. */
+  function procesarRetorno() {
+    var q = new URLSearchParams(location.search);
+    var code = q.get('code');
+    var error = q.get('error');
+    if (!code && !error) return Promise.resolve(false);
+    history.replaceState(null, '', urlRetorno());
+    var pk = leerJSON(K.pkce);
+    borrarLS(K.pkce);
+    if (error) return Promise.reject(new Error(q.get('error_description') || error));
+    if (!pk || pk.s !== q.get('state')) return Promise.reject(new Error('La respuesta de inicio de sesión no coincide. Intenta de nuevo.'));
+    return pedirToken({
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: urlRetorno(),
+      code_verifier: pk.v
+    }).then(function () { return true; });
+  }
+
+  /* ================= Microsoft Graph · Excel en OneDrive ================= */
+  function graph(metodo, ruta, cuerpo, intento) {
+    intento = intento || 0;
+    return obtenerToken().then(function (token) {
+      var op = { method: metodo, headers: { Authorization: 'Bearer ' + token } };
+      if (cuerpo !== undefined) {
+        op.headers['Content-Type'] = 'application/json';
+        op.body = JSON.stringify(cuerpo);
+      }
+      return fetch(GRAPH + ruta, op);
+    }).then(function (r) {
+      if (r.status === 401 && intento === 0) {
+        caducarAcceso();
+        return graph(metodo, ruta, cuerpo, 1);
+      }
+      // Solo se reintenta lo que no pudo haber escrito dos veces
+      var reintentable = r.status === 429 || (metodo === 'GET' && r.status >= 500);
+      if (reintentable && intento < 2) {
+        return pausa(800 * (intento + 1)).then(function () { return graph(metodo, ruta, cuerpo, intento + 1); });
+      }
+      return r.text().then(function (txt) {
+        var j = null;
+        try { j = txt ? JSON.parse(txt) : null; } catch (e) {}
+        if (!r.ok) {
+          var err = new Error((j && j.error && j.error.message) || ('Error ' + r.status + ' de Microsoft Graph'));
+          err.status = r.status;
+          if (r.status === 401) err.sesion = true;
+          if (r.status === 403) err.message = 'Sin permiso para tu OneDrive: revisa el permiso Files.ReadWrite de la app en Entra';
+          throw err;
+        }
+        return j;
+      });
+    });
+  }
+
+  function rutaLibro(id) { return '/me/drive/items/' + encodeURIComponent(id) + '/workbook'; }
+
+  function asegurarArchivo() {
+    var id = leerLS(K.item);
+    if (id) return Promise.resolve(id);
+    var ruta = '/me/drive/root:/' + CONFIG.ARCHIVO.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+    return graph('GET', ruta).then(function (j) {
+      if (!j || !j.id) throw new Error('No encontré ' + CONFIG.ARCHIVO + ' en tu OneDrive');
+      guardarLS(K.item, j.id);
+      return j.id;
+    }, function (e) {
+      if (e.status === 404) e.message = 'No encontré ' + CONFIG.ARCHIVO + ' en tu OneDrive (súbelo a Mis archivos)';
+      throw e;
+    });
+  }
+
+  /** Ejecuta fn(idArchivo); si el id guardado ya no sirve, lo busca otra vez una sola vez. */
+  function conArchivo(fn) {
+    return asegurarArchivo().then(fn).catch(function (e) {
+      if (e.status !== 404 || !leerLS(K.item)) throw e;
+      borrarLS(K.item);
+      return asegurarArchivo().then(fn);
+    });
+  }
+
+  /** Lectura masiva: todos los valores de una tabla (encabezado incluido) en una sola petición. */
+  function leerTabla(id, nombre) {
+    return graph('GET', rutaLibro(id) + '/tables/' + encodeURIComponent(nombre) + '/range?$select=values')
+      .then(function (j) { return (j && j.values) || []; }, function (e) {
+        if (e.status === 404) e.message = 'No encontré la tabla ' + nombre + ' en ' + CONFIG.ARCHIVO;
+        throw e;
+      });
+  }
+
+  var api = {
+    cargarTodo: function () {
+      return conArchivo(function (id) {
+        return Promise.all([
+          leerTabla(id, CONFIG.TABLA_GASTOS),
+          leerTabla(id, CONFIG.TABLA_CATEGORIAS),
+          leerTabla(id, CONFIG.TABLA_AJUSTES).catch(function (e) { if (e.status === 404) return null; throw e; })
+        ]);
+      }).then(function (r) {
+        var g = filasGastos(r[0]);
+        return { filas: g.filas, columnas: g.columnas, categorias: listaCategorias(r[1]), ajustes: leerAjustes(r[2]) };
+      });
+    },
+    agregarGasto: function (fila) {
+      return conArchivo(function (id) {
+        return graph('POST', rutaLibro(id) + '/tables/' + encodeURIComponent(CONFIG.TABLA_GASTOS) + '/rows', { values: [fila] });
+      });
+    }
+  };
+
+  /* ================= Pantalla de acceso ================= */
+  var TEXTO_ACCESO = 'Inicia sesión con tu cuenta de Microsoft 365. Tus gastos se guardan en ' + CONFIG.ARCHIVO + ' de tu OneDrive.';
+
+  function mostrarAcceso(contenido, modo) {
+    qs('accesoTexto').textContent = contenido;
+    qs('btnEntrar').classList.toggle('oculto', modo !== 'boton');
+    qs('accesoCargando').classList.toggle('oculto', modo !== 'cargando');
+    qs('acceso').classList.remove('oculto');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  function ocultarAcceso() { qs('acceso').classList.add('oculto'); }
+
+  function entrarConMicrosoft() {
+    mostrarAcceso('Abriendo el inicio de sesión de Microsoft…', 'cargando');
+    iniciarSesion(leerLS(K.usuario)).catch(function (e) { mostrarAcceso(mensaje(e), 'boton'); });
+  }
+
+  /** Sesión vencida: rebote rápido a Microsoft (sin pedir datos si la sesión del navegador sigue activa). */
+  function reconectar() {
+    var ultimo = Number(leerLS(K.rebote) || 0);
+    if (Date.now() - ultimo < 60000) {
+      mostrarAcceso('Tu sesión expiró. Vuelve a iniciar sesión.', 'boton');
+      return;
+    }
+    guardarLS(K.rebote, String(Date.now()));
+    mostrarAcceso('Reconectando con Microsoft 365…', 'cargando');
+    iniciarSesion(leerLS(K.usuario)).catch(function (e) { mostrarAcceso(mensaje(e), 'boton'); });
+  }
+
+  function cerrarSesion() {
+    [K.tokens, K.item, K.cache, K.pendiente, K.usuario].forEach(borrarLS);
+    estado.filas = [];
+    estado.categorias = [];
+    estado.resumen = null;
+    estado.dentro = false;
+    mostrarAcceso(TEXTO_ACCESO, 'boton');
+  }
+
+  /* ================= Avisos (en la cabecera) ================= */
+  function tituloVista() { return estado.vista === 'cargar' ? 'Nuevo gasto' : 'Resumen'; }
+
+  function restaurarTitulo() {
+    tAviso = null;
+    var t = qs('titulo');
+    t.className = 'etiqueta titulo';
+    t.textContent = tituloVista();
+  }
+
+  function avisar(contenido, tipo) {
+    var t = qs('titulo');
+    clearTimeout(tAviso);
+    t.textContent = contenido;
+    t.className = 'etiqueta titulo' + (tipo === 'error' ? ' es-error' : (tipo === 'ok' ? ' es-ok' : ''));
+    tAviso = setTimeout(restaurarTitulo, tipo === 'error' ? 4000 : 2400);
+  }
+
+  /* ================= Navegación ================= */
+  function irA(vista) {
+    if (estado.vista === vista) { window.scrollTo(0, 0); return; }
+    estado.vista = vista;
+    var cargar = vista === 'cargar';
+    qs('vistaCargar').classList.toggle('oculto', !cargar);
+    qs('vistaResumen').classList.toggle('oculto', cargar);
+    qs('barraGuardar').classList.toggle('oculto', !cargar);
+    qs('tabCargar').setAttribute('aria-selected', String(cargar));
+    qs('tabResumen').setAttribute('aria-selected', String(!cargar));
+    if (!tAviso) restaurarTitulo();
+    window.scrollTo(0, 0);
+    if (cargar) {
+      enfocarMonto();
+    } else if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+  }
+
+  function revisarTeclado() {
+    var a = document.activeElement;
+    var escribiendo = a && a.tagName === 'INPUT';
+    if (!escribiendo) {
+      alturaBase = window.innerHeight;
+      document.body.classList.remove('teclado');
+      return;
+    }
+    document.body.classList.toggle('teclado', window.innerHeight < alturaBase - 120);
+  }
+
+  /* ================= Categorías ================= */
+  function pintarChipsCargando() {
+    var cont = qs('chips');
+    cont.innerHTML = '';
+    for (var i = 0; i < 6; i++) cont.appendChild(el('div', 'chip esqueleto', '\u00a0'));
+  }
+
+  function pintarChips() {
+    var cont = qs('chips');
+    cont.innerHTML = '';
+    if (!estado.categorias.length) {
+      cont.appendChild(el('p', 'vacio col-todas', 'Agrega categorías en la hoja Config (columna A) y toca sincronizar.'));
+      return;
+    }
+    estado.categorias.forEach(function (c) {
+      var b = el('button', 'chip', c);
+      b.type = 'button';
+      b.title = c;
+      b.setAttribute('data-cat', c);
+      b.setAttribute('aria-pressed', c === estado.categoria ? 'true' : 'false');
+      b.addEventListener('click', function () { elegir(c); });
+      cont.appendChild(b);
+    });
+  }
+
+  function elegir(c) {
+    estado.categoria = c;
+    guardarLS(K.categoria, c);
+    var chips = qs('chips').querySelectorAll('.chip');
+    for (var i = 0; i < chips.length; i++) {
+      chips[i].setAttribute('aria-pressed', chips[i].getAttribute('data-cat') === c ? 'true' : 'false');
+    }
+    vibrar(8);
+  }
+
+  function aplicarCategorias(lista) {
+    lista = Array.isArray(lista) ? lista : [];
+    var cambio = lista.join('\n') !== estado.categorias.join('\n') || !qs('chips').querySelector('.chip:not(.esqueleto)');
+    estado.categorias = lista;
+    if (estado.categoria && lista.indexOf(estado.categoria) === -1) estado.categoria = null;
+    if (!estado.categoria) {
+      var recordada = leerLS(K.categoria);
+      if (recordada && lista.indexOf(recordada) !== -1) estado.categoria = recordada;
+    }
+    if (cambio) pintarChips();
+  }
+
+  /* ================= Datos ================= */
+  function aplicarDatos(d, desdeCache) {
+    estado.filas = d.filas || [];
+    estado.columnas = d.columnas || columnasDe(null);
+    estado.ajustes = d.ajustes || { presupuesto: CONFIG.PRESUPUESTO, inicio: null };
+    aplicarCategorias(d.categorias);
+    recalcular();
+    if (!desdeCache) guardarCache();
+  }
+
+  function guardarCache() {
+    guardarJSON(K.cache, {
+      filas: estado.filas,
+      columnas: estado.columnas,
+      categorias: estado.categorias,
+      ajustes: estado.ajustes
+    });
+  }
+
+  function recalcular() {
+    estado.resumen = calcularResumen(estado.filas, estado.ajustes, new Date());
+    pintarDisponible();
+    pintarResumen();
+  }
+
+  function pintarDisponible() {
+    var r = estado.resumen;
+    var nodo = qs('cDisponible');
+    if (!r) { nodo.textContent = ''; return; }
+    nodo.textContent = 'Disponible ' + dinero(r.presupuesto.disponible);
+    nodo.classList.toggle('negativo', r.presupuesto.disponible < 0);
+  }
+
+  /* ================= Guardar ================= */
+  function ponerBoton(modo) {
+    var b = qs('btnGuardar');
+    var ico = qs('btnIco');
+    var txt = qs('btnTxt');
+    clearTimeout(tBoton);
+    b.setAttribute('data-estado', modo);
+    b.setAttribute('aria-busy', modo === 'guardando' ? 'true' : 'false');
+
+    if (modo === 'guardando') {
+      ico.innerHTML = '<span class="spinner"></span>';
+      txt.textContent = 'Guardando';
+    } else if (modo === 'ok') {
+      ico.innerHTML = ICONO_OK;
+      txt.textContent = 'Guardado';
+    } else if (modo === 'error') {
+      ico.innerHTML = '';
+      txt.textContent = 'Reintentar';
+    } else {
+      ico.innerHTML = '';
+      txt.textContent = 'Guardar';
+    }
+
+    if (modo === 'ok' || modo === 'error') {
+      tBoton = setTimeout(function () { ponerBoton('listo'); }, modo === 'ok' ? 1400 : 3000);
+    }
+  }
+
+  function guardar() {
+    if (estado.guardando) return;
+
+    var inpMonto = qs('monto');
+    var inpDetalle = qs('detalle');
+    var escrito = inpMonto.value;
+    var monto = parsearMonto(escrito);
+
+    if (!(monto > 0)) {
+      avisar('Escribe un monto', 'error');
+      sacudir(qs('montoFila'));
+      enfocarMonto();
+      return;
+    }
+    if (!estado.categoria) {
+      avisar('Elige una categoría', 'error');
+      sacudir(qs('chips'));
+      return;
+    }
+
+    var datos = {
+      monto: Math.round(monto * 100) / 100,
+      detalle: inpDetalle.value.replace(/\s+/g, ' ').trim().slice(0, 120),
+      categoria: estado.categoria
+    };
+    var serial = serialExcel(new Date());
+    var fila = filaParaExcel(estado.columnas, serial, datos.detalle, datos.monto, datos.categoria);
+
+    // Feedback inmediato: cambia el botón, limpia y devuelve el foco (sin navegar)
+    estado.guardando = true;
+    ponerBoton('guardando');
+    inpMonto.value = '';
+    inpDetalle.value = '';
+    enfocarMonto();
+
+    api.agregarGasto(fila).then(function () {
+      estado.guardando = false;
+      var ultimo = estado.filas.length ? estado.filas[estado.filas.length - 1].i : 0;
+      estado.filas.push({ i: ultimo + 1, t: aFecha(serial), detalle: datos.detalle, monto: datos.monto, categoria: datos.categoria });
+      recalcular();           // resumen recalculado con el gasto recién guardado
+      guardarCache();
+      ponerBoton('ok');
+      vibrar(12);
+      avisar('Guardado \u00b7 ' + dinero(datos.monto) + ' \u00b7 ' + datos.categoria, 'ok');
+    }).catch(function (err) {
+      estado.guardando = false;
+      if (err && err.sesion) {
+        // El gasto no llegó a enviarse: se guarda y se manda solo al reconectar
+        guardarJSON(K.pendiente, datos);
+        reconectar();
+        return;
+      }
+      ponerBoton('error');
+      if (!inpMonto.value) {
+        inpMonto.value = escrito;
+        if (!inpDetalle.value) inpDetalle.value = datos.detalle;
+      }
+      avisar('No se guardó: ' + mensaje(err), 'error');
+    });
+  }
+
+  function enviarPendiente() {
+    var p = leerJSON(K.pendiente);
+    if (!p || !(p.monto > 0) || !p.categoria) return;
+    borrarLS(K.pendiente);
+    qs('monto').value = String(p.monto);
+    qs('detalle').value = p.detalle || '';
+    estado.categoria = p.categoria;
+    pintarChips();
+    guardar();
+  }
+
+  /* ================= Sync ================= */
+  function sincronizar(silencioso, alTerminar) {
+    if (estado.cargando) return;
+    estado.cargando = true;
+    qs('btnSync').classList.add('girando');
+
+    api.cargarTodo().then(function (d) {
+      estado.cargando = false;
+      estado.ultimaSync = Date.now();
+      qs('btnSync').classList.remove('girando');
+      aplicarDatos(d, false);
+      if (!silencioso) avisar('Actualizado', 'ok');
+      if (alTerminar) alTerminar();
+    }).catch(function (err) {
+      estado.cargando = false;
+      qs('btnSync').classList.remove('girando');
+      if (err && err.sesion) {
+        if (!silencioso || camposVacios()) reconectar();
+        else avisar('Sesión expirada: toca sincronizar', 'error');
+        return;
+      }
+      if (!estado.categorias.length) {
+        var cont = qs('chips');
+        cont.innerHTML = '';
+        cont.appendChild(el('p', 'vacio col-todas', mensaje(err)));
+      }
+      avisar('No se pudo sincronizar: ' + mensaje(err), 'error');
+    });
+  }
+
+  /* ================= Resumen ================= */
+  function pintarResumen() {
+    var r = estado.resumen;
+    if (!r) return;
+    var p = r.presupuesto;
+
+    qs('rMes').textContent = 'Disponible en ' + r.mes;
+    pintarCifra(qs('rTotal'), p.disponible);
+    qs('rTotal').classList.toggle('negativo', p.disponible < 0);
+
+    var uso = p.limite > 0 ? r.total / p.limite * 100 : (r.total > 0 ? 101 : 0);
+    var barra = qs('rPresuBarra');
+    barra.style.width = Math.min(Math.max(uso, 0), 100) + '%';
+    barra.style.background = uso > 100 ? '#F87171' : '#CBD5E1';
+
+    var movs = r.cantidad ? ' \u00b7 ' + r.cantidad + (r.cantidad === 1 ? ' movimiento' : ' movimientos') : '';
+    qs('rSub').textContent = p.limite > 0
+      ? 'Gastado ' + dinero(r.total) + ' de ' + dinero(p.limite) + movs
+      : 'Gastado ' + dinero(r.total) + movs;
+
+    var sob = qs('rSobrante');
+    if (p.meses > 1 && Math.abs(p.sobrante) >= 0.005) {
+      sob.textContent = p.sobrante > 0
+        ? 'Incluye ' + dinero(p.sobrante) + ' que sobró de meses anteriores'
+        : 'Incluye ' + dinero(-p.sobrante) + ' de exceso de meses anteriores';
+      sob.classList.remove('oculto');
+    } else {
+      sob.classList.add('oculto');
+    }
+
+    pintarTop(r);
+    pintarEvolucion(r);
+    pintarDona(r);
+    pintarUltimos(r);
+    qs('rUsuario').textContent = leerLS(K.usuario) || '';
+  }
+
+  function pintarCifra(cont, n) {
+    cont.innerHTML = '';
+    n = Number(n) || 0;
+    if (sinCentavos(n)) { cont.textContent = fmt0.format(n); return; }
+    try {
+      fmt2.formatToParts(n).forEach(function (p) {
+        if (p.type === 'decimal' || p.type === 'fraction') cont.appendChild(el('span', 'centavos', p.value));
+        else cont.appendChild(document.createTextNode(p.value));
+      });
+    } catch (e) {
+      cont.textContent = fmt2.format(n);
+    }
+  }
+
+  function pintarTop(r) {
+    var cont = qs('rTop');
+    cont.innerHTML = '';
+    var lista = r.top || [];
+    if (!lista.length) {
+      cont.appendChild(el('p', 'vacio', 'Aún no hay gastos este mes.'));
+      return;
+    }
+    lista.forEach(function (c, i) {
+      var fila = el('div', 'top-fila');
+      var cabeza = el('div', 'top-cabeza');
+      var nombre = el('div', 'top-nombre');
+      nombre.appendChild(el('span', 'trunc' + (i === 0 ? ' fuerte' : ''), c.nombre));
+      nombre.appendChild(el('span', 'etiqueta', pctTexto(c.pct)));
+      cabeza.appendChild(nombre);
+      cabeza.appendChild(el('span', 'num' + (i === 0 ? ' fuerte' : ''), dinero(c.monto)));
+
+      var barra = el('div', 'barra');
+      var relleno = el('div', 'barra-relleno');
+      relleno.style.background = COLORES[i];
+      relleno.style.width = Math.min(Math.max(c.pct, 2), 100) + '%';
+      barra.appendChild(relleno);
+
+      fila.appendChild(cabeza);
+      fila.appendChild(barra);
+      cont.appendChild(fila);
+    });
+  }
+
+  function pintarEvolucion(r) {
+    var ev = r.evolucion || {};
+    var act = ev.actual || [];
+    var n = Math.max(ev.diasMes || 30, 2);
+    var ant = (ev.anterior || []).slice(0, n);
+    var limite = r.presupuesto ? r.presupuesto.limite : 0;
+    var W = 320, H = 128, ARRIBA = 8, ABAJO = 8;
+    var alto = H - ARRIBA - ABAJO;
+    var maxY = limite > 0 ? limite : 0, i;
+
+    for (i = 0; i < act.length; i++) if (act[i] > maxY) maxY = act[i];
+    for (i = 0; i < ant.length; i++) if (ant[i] > maxY) maxY = ant[i];
+    if (maxY <= 0) maxY = 1;
+
+    function px(k) { return (k / (n - 1) * W).toFixed(1); }
+    function py(v) { return (ARRIBA + (1 - Math.max(v, 0) / maxY) * alto).toFixed(1); }
+    function trazo(arr) {
+      var d = '';
+      for (var k = 0; k < arr.length; k++) d += (k ? ' L' : 'M') + px(k) + ' ' + py(arr[k]);
+      return d;
+    }
+
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible" role="img" aria-label="Gasto acumulado del mes comparado con el mes anterior y con el límite disponible">';
+    s += '<defs><linearGradient id="degEvo" x1="0" y1="0" x2="0" y2="1">';
+    s += '<stop offset="0" stop-color="#F1F5F9" stop-opacity="0.16"/><stop offset="1" stop-color="#F1F5F9" stop-opacity="0"/>';
+    s += '</linearGradient></defs>';
+    for (i = 0; i <= 2; i++) {
+      var gy = (ARRIBA + alto * i / 2).toFixed(1);
+      s += '<line x1="0" x2="' + W + '" y1="' + gy + '" y2="' + gy + '" stroke="#334155" stroke-width="1" stroke-dasharray="2 6"/>';
+    }
+    if (limite > 0) {
+      var ly = py(limite);
+      s += '<line x1="0" x2="' + W + '" y1="' + ly + '" y2="' + ly + '" stroke="#475569" stroke-width="2"/>';
+    }
+    if (ant.length > 1 && r.totalAnterior > 0) {
+      s += '<path d="' + trazo(ant) + '" fill="none" stroke="#64748B" stroke-width="2" stroke-dasharray="4 6" stroke-linecap="round" stroke-linejoin="round"/>';
+    }
+    if (act.length > 1) {
+      var d = trazo(act);
+      s += '<path d="' + d + ' L' + px(act.length - 1) + ' ' + (H - ABAJO) + ' L0 ' + (H - ABAJO) + ' Z" fill="url(#degEvo)"/>';
+      s += '<path d="' + d + '" fill="none" stroke="#F1F5F9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    }
+    if (act.length) {
+      var u = act.length - 1;
+      s += '<circle cx="' + px(u) + '" cy="' + py(act[u]) + '" r="4" fill="#F1F5F9"/>';
+    }
+    s += '</svg>';
+    qs('rEvo').innerHTML = s;
+
+    var eje = qs('rEje');
+    eje.innerHTML = '';
+    eje.appendChild(el('span', 'etiqueta', '1 ' + corto(r.mes)));
+    eje.appendChild(el('span', 'etiqueta', '15'));
+    eje.appendChild(el('span', 'etiqueta', n + ' ' + corto(r.mes)));
+
+    var ritmo = qs('rRitmo');
+    if (ev.anteriorAlDia > 0) {
+      var dif = Math.round((ev.alDia - ev.anteriorAlDia) / ev.anteriorAlDia * 100);
+      ritmo.textContent = (dif > 0 ? '+' : (dif < 0 ? '\u2212' : '')) + Math.abs(dif) + '% vs ' + corto(r.mesAnterior);
+    } else {
+      ritmo.textContent = '';
+    }
+
+    var ley = qs('rLeyEvo');
+    ley.innerHTML = '';
+    ley.appendChild(itemLeyenda('', capital(r.mes), r.total));
+    if (ant.length && r.totalAnterior > 0) ley.appendChild(itemLeyenda('punteada', capital(r.mesAnterior), r.totalAnterior));
+    if (limite > 0) ley.appendChild(itemLeyenda('limite', 'Límite', limite));
+  }
+
+  function itemLeyenda(tipo, nombre, monto) {
+    var w = el('div', 'ley-evo');
+    w.appendChild(el('span', 'trazo' + (tipo ? ' ' + tipo : '')));
+    w.appendChild(el('span', 'etiqueta', nombre));
+    w.appendChild(el('span', 'num', dinero(monto)));
+    return w;
+  }
+
+  function pintarDona(r) {
+    var R = 52, G = 16, C = 2 * Math.PI * R;
+    var lista = r.dona || [];
+    var total = 0, i;
+    for (i = 0; i < lista.length; i++) total += Math.max(lista[i].monto, 0);
+
+    var s = '<svg viewBox="0 0 128 128" width="128" height="128" style="display:block" role="img" aria-label="Distribución del gasto por categoría">';
+    s += '<circle cx="64" cy="64" r="' + R + '" fill="none" stroke="#0F172A" stroke-width="' + G + '"/>';
+    if (total > 0) {
+      var hueco = lista.length > 1 ? 2 : 0;
+      var acum = 0;
+      for (i = 0; i < lista.length; i++) {
+        var f = Math.max(lista[i].monto, 0) / total;
+        var largo = Math.max(f * C - hueco, 0.5);
+        s += '<circle cx="64" cy="64" r="' + R + '" fill="none" stroke="' + COLORES[i % COLORES.length] + '"' +
+             ' stroke-width="' + G + '" stroke-dasharray="' + largo.toFixed(2) + ' ' + C.toFixed(2) + '"' +
+             ' stroke-dashoffset="' + (-acum * C).toFixed(2) + '" transform="rotate(-90 64 64)"/>';
+        acum += f;
+      }
+    }
+    s += '</svg>';
+    qs('rDona').innerHTML = s;
+
+    var centro = qs('rDonaCentro');
+    centro.innerHTML = '';
+    if (lista.length && total > 0) {
+      centro.appendChild(el('div', 'dona-pct num', pctTexto(lista[0].pct)));
+      centro.appendChild(el('div', 'etiqueta trunc dona-nombre', lista[0].nombre));
+    } else {
+      centro.appendChild(el('div', 'etiqueta', 'Sin datos'));
+    }
+
+    var ley = qs('rLeyenda');
+    ley.innerHTML = '';
+    for (i = 0; i < lista.length; i++) {
+      var fila = el('div', 'ley-fila');
+      var p = el('span', 'punto');
+      p.style.background = COLORES[i % COLORES.length];
+      fila.appendChild(p);
+      fila.appendChild(el('span', 'trunc ley-nombre', lista[i].nombre));
+      fila.appendChild(el('span', 'num', pctTexto(lista[i].pct)));
+      ley.appendChild(fila);
+    }
+  }
+
+  function fechaCorta(iso, r) {
+    if (iso === r.hoy) return 'Hoy';
+    if (iso === r.ayer) return 'Ayer';
+    var p = String(iso || '').split('-');
+    if (p.length !== 3) return '';
+    var txt = Number(p[2]) + ' ' + MESES_CORTOS[Number(p[1]) - 1];
+    if (Number(p[0]) !== r.anio) txt += ' ' + p[0];
+    return txt;
+  }
+
+  function pintarUltimos(r) {
+    var cont = qs('rUltimos');
+    cont.innerHTML = '';
+    var lista = r.ultimos || [];
+    if (!lista.length) {
+      cont.appendChild(el('p', 'vacio', 'Sin movimientos todavía.'));
+      return;
+    }
+    lista.forEach(function (m) {
+      var fila = el('div', 'mov');
+      var izq = el('div', 'mov-izq');
+      izq.appendChild(el('div', 'trunc', m.detalle || m.categoria));
+      izq.appendChild(el('div', 'etiqueta trunc', fechaCorta(m.fecha, r) + (m.detalle ? ' \u00b7 ' + m.categoria : '')));
+      fila.appendChild(izq);
+      fila.appendChild(el('div', 'mov-monto', dinero(m.monto)));
+      cont.appendChild(fila);
+    });
+  }
+
+  /* ================= Inicio ================= */
+  function enlazarEventos() {
+    var monto = qs('monto');
+    var detalle = qs('detalle');
+    var btn = qs('btnGuardar');
+
+    monto.addEventListener('input', function () {
+      var limpio = monto.value.replace(/[^0-9.,]/g, '');
+      if (limpio !== monto.value) monto.value = limpio;
+    });
+    monto.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); detalle.focus(); }
+    });
+    detalle.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); detalle.blur(); }
+    });
+    qs('zonaMonto').addEventListener('click', function (e) {
+      if (e.target !== monto) enfocarMonto();
+    });
+
+    // Evita que el toque en Guardar quite el foco del monto (el teclado no se cierra)
+    btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    btn.addEventListener('click', guardar);
+
+    qs('btnSync').addEventListener('click', function () { sincronizar(false); });
+    qs('tabCargar').addEventListener('click', function () { irA('cargar'); });
+    qs('tabResumen').addEventListener('click', function () { irA('resumen'); });
+    qs('btnEntrar').addEventListener('click', entrarConMicrosoft);
+    qs('btnSalir').addEventListener('click', cerrarSesion);
+
+    window.addEventListener('resize', revisarTeclado);
+    document.addEventListener('focusout', function () { setTimeout(revisarTeclado, 150); });
+    document.addEventListener('visibilitychange', function () {
+      if (estado.dentro && document.visibilityState === 'visible' && Date.now() - estado.ultimaSync > SYNC_AUTO_MS) {
+        sincronizar(true);
+      }
+    });
+  }
+
+  function entrar() {
+    estado.dentro = true;
+    ocultarAcceso();
+    var cache = leerJSON(K.cache);
+    if (cache && cache.filas) aplicarDatos(cache, true);   // se ve al instante; luego se actualiza
+    else pintarChipsCargando();
+    enfocarMonto();
+    sincronizar(true, enviarPendiente);
+  }
+
+  function arrancar() {
+    qs('simbolo').textContent = simboloMoneda();
+    enlazarEventos();
+
+    if (!configurado()) {
+      mostrarAcceso('Falta configurar la app: pega CLIENT_ID y TENANT_ID al inicio del script de index.html.', 'nada');
+      return;
+    }
+    if (/[?&](code|error)=/.test(location.search)) mostrarAcceso('Conectando con Microsoft 365…', 'cargando');
+
+    procesarRetorno().then(function () {
+      if (!tokens()) { mostrarAcceso(TEXTO_ACCESO, 'boton'); return; }
+      entrar();
+    }).catch(function (e) {
+      mostrarAcceso('No se pudo iniciar sesión: ' + mensaje(e), 'boton');
+    });
+  }
+
+  arrancar();
+})();
+</script>
+</body>
+</html>
